@@ -82,7 +82,7 @@ func Join2[V any](first, second Inflater[V]) Inflater[V] {
 	})
 }
 
-// Distibute creates an Inflater which distibute a seed to multiple Inflaters.
+// Join creates an Inflater which distibute a seed to multiple Inflaters.
 func Join[V any](inflaters ...Inflater[V]) Inflater[V] {
 	switch len(inflaters) {
 	case 0:
@@ -94,6 +94,10 @@ func Join[V any](inflaters ...Inflater[V]) Inflater[V] {
 	default:
 		return Join2(inflaters[0], Join(inflaters[1:]...))
 	}
+}
+
+func JoinSeed[V any](inflaters ...Inflater[V]) Inflater[V] {
+	return Join2[V](Keep[V](), Join(inflaters...))
 }
 
 // Reinflate2 creates an Inflater that inflates the result of the first
