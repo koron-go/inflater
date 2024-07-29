@@ -33,13 +33,13 @@ func Keep[V any]() Inflater[V] {
 	})
 }
 
-func Map[V any] (fn func(V) V) Inflater[V] {
-	if fn == nil {
-		return Keep[V](fn)
+func Map[V any] (applyFn func(V) V) Inflater[V] {
+	if applyFn == nil {
+		return Keep[V]()
 	}
 	return InflaterFunc[V](func(seed V) iter.Seq[V] {
 		return func(yield func(V) bool) {
-			yield(apply(seed))
+			yield(applyFn(seed))
 		}
 	})
 }
