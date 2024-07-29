@@ -33,30 +33,39 @@ func Keep[V any]() Inflater[V] {
 	})
 }
 
-func Map[V any] (applyFn func(V) V) Inflater[V] {
-	if applyFn == nil {
-		return Keep[V]()
+func Map[V any](inflater Inflater[V], apply func(V) V) Inflater[V] {
+	if apply == nil {
+		return inflater
 	}
 	return InflaterFunc[V](func(seed V) iter.Seq[V] {
 		return func(yield func(V) bool) {
-			yield(applyFn(seed))
-		}
-	})
-}
-
-// Filter provides an Inflater which inflate a seed if check(seed) returns true.
-func Filter[V any](check func(V) bool) Inflater[V] {
-	return InflaterFunc[V](func(seed V) iter.Seq[V] {
-		return func(yield func(V) bool) {
-			if check(seed) {
-				yield(seed)
+			for v := range inflater.Inflate(seed) {
+				if !yield(apply(v)) {
+					return
+				}
 			}
 		}
 	})
 }
 
-// Distribute2 creates an Inflater with distribute a seed to two Inflaters.
-func Distribute2[V any](first, second Inflater[V]) Inflater[V] {
+// Filter provides an Inflater which inflate a seed if check(seed) returns true.
+func Filter[V any](inflater Inflater[V], check func(V) bool) Inflater[V] {
+	if check == nil {
+		return inflater
+	}
+	return InflaterFunc[V](func(seed V) iter.Seq[V] {
+		return func(yield func(V) bool) {
+			for v := range inflater.Inflate(seed) {
+				if check(v) && !yield(v) {
+					return
+				}
+			}
+		}
+	})
+}
+
+// Join2 creates an Inflater with distribute a seed to two Inflaters.
+func Join2[V any](first, second Inflater[V]) Inflater[V] {
 	return InflaterFunc[V](func(seed V) iter.Seq[V] {
 		return func(yield func(V) bool) {
 			for s := range first.Inflate(seed) {
@@ -74,16 +83,16 @@ func Distribute2[V any](first, second Inflater[V]) Inflater[V] {
 }
 
 // Distibute creates an Inflater which distibute a seed to multiple Inflaters.
-func Distribute[V any](inflaters ...Inflater[V]) Inflater[V] {
+func Join[V any](inflaters ...Inflater[V]) Inflater[V] {
 	switch len(inflaters) {
 	case 0:
 		return None[V]()
 	case 1:
 		return inflaters[0]
 	case 2:
-		return Distribute2(inflaters[0], inflaters[1])
+		return Join2(inflaters[0], inflaters[1])
 	default:
-		return Distribute2(inflaters[0], Distribute(inflaters[1:]...))
+		return Join2(inflaters[0], Join(inflaters[1:]...))
 	}
 }
 
@@ -119,12 +128,17 @@ func Reinflate[V any](inflaters ...Inflater[V]) Inflater[V] {
 }
 
 // Prefix provides an Inflater which inflate with prefixes.
-func Prefix[V ~string](prefixes ...V) Inflater[V] {
+func Prefix[V ~string](inflater Inflater[V], prefixes ...V) Inflater[V] {
+	if len(prefixes) == 0 {
+		return None[V]()
+	}
 	return InflaterFunc[V](func(seed V) iter.Seq[V] {
 		return func(yield func(V) bool) {
-			for _, prefix := range prefixes {
-				if !yield(prefix + seed) {
-					return
+			for v := range inflater.Inflate(seed) {
+				for _, prefix := range prefixes {
+					if !yield(prefix + v) {
+						return
+					}
 				}
 			}
 		}
@@ -132,12 +146,17 @@ func Prefix[V ~string](prefixes ...V) Inflater[V] {
 }
 
 // Suffix provides an Inflater which inflate with suffixes.
-func Suffix[V ~string](suffixes ...V) Inflater[V] {
+func Suffix[V ~string](inflater Inflater[V], suffixes ...V) Inflater[V] {
+	if len(suffixes) == 0 {
+		return None[V]()
+	}
 	return InflaterFunc[V](func(seed V) iter.Seq[V] {
 		return func(yield func(V) bool) {
-			for _, suffix := range suffixes {
-				if !yield(seed + suffix) {
-					return
+			for v := range inflater.Inflate(seed) {
+				for _, suffix := range suffixes {
+					if !yield(v + suffix) {
+						return
+					}
 				}
 			}
 		}
