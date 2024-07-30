@@ -1,5 +1,6 @@
 /*
-Package inflater provides ...
+Package `inflater` provides an `Inflater` interface that inflates a value
+into multiple values and some operations to combine them `Inflater`s.
 */
 package inflater
 
@@ -7,12 +8,16 @@ import (
 	"iter"
 )
 
+// Inflater is the interface that inflate a value to a sequence of values
 type Inflater[V any] interface {
+	// Inflate a seed value to a sequence of values.
 	Inflate(seed V) iter.Seq[V]
 }
 
+// InflateFunc is a wrapper function for using a function as an Inflater.
 type InflaterFunc[V any] func(seed V) iter.Seq[V]
 
+// Inflate a value to a sequence of values.
 func (f InflaterFunc[V]) Inflate(seed V) iter.Seq[V] {
 	return f(seed)
 }
@@ -33,6 +38,7 @@ func Keep[V any]() Inflater[V] {
 	})
 }
 
+// Map is an Inflater which maps (modify/convert) a value to another value with a function.
 func Map[V any](apply func(V) V) Inflater[V] {
 	if apply == nil {
 		return Keep[V]()
@@ -46,7 +52,7 @@ func Map[V any](apply func(V) V) Inflater[V] {
 	})
 }
 
-// Filter provides an Inflater which inflate a seed if check(seed) returns true.
+// Filter provides an Inflater which pass through a seed if check(seed) returns true.
 func Filter[V any](check func(V) bool) Inflater[V] {
 	if check == nil {
 		return Keep[V]()
@@ -60,7 +66,8 @@ func Filter[V any](check func(V) bool) Inflater[V] {
 	})
 }
 
-// Parallel2 creates an Inflater with distribute a seed to two Inflaters.
+// Parallel2 creates an Inflater that inflates one input with two Inflaters and
+// concatenates the results into one iter.Seq.
 func Parallel2[V any](first, second Inflater[V]) Inflater[V] {
 	return InflaterFunc[V](func(seed V) iter.Seq[V] {
 		return func(yield func(V) bool) {
@@ -78,7 +85,8 @@ func Parallel2[V any](first, second Inflater[V]) Inflater[V] {
 	})
 }
 
-// Parallel creates an Inflater which distibute a seed to multiple Inflaters.
+// Parallel creates an Inflater that inflates one input with multiple Inflaters
+// and concatenates the results into one iter.Seq.
 func Parallel[V any](inflaters ...Inflater[V]) Inflater[V] {
 	switch len(inflaters) {
 	case 0:
@@ -92,8 +100,8 @@ func Parallel[V any](inflaters ...Inflater[V]) Inflater[V] {
 	}
 }
 
-// Serial2 creates an Inflater that inflates the result of the first
-// Inflater with the second Inflater.
+// Serial2 creates an Inflater that inflates the input with the first Inflater
+// and then inflates the result with the second Inflater.
 func Serial2[V any](first, second Inflater[V]) Inflater[V] {
 	return InflaterFunc[V](func(seed V) iter.Seq[V] {
 		return func(yield func(V) bool) {
@@ -108,8 +116,9 @@ func Serial2[V any](first, second Inflater[V]) Inflater[V] {
 	})
 }
 
-// Serial creates an Inflater that applies multiple Inflaters in sequence to
-// its result repeatedly.
+// Serial creates an Inflater that inflates the input with the first Inflater,
+// then inflates the result with the second Inflater, and repeats this for all
+// the given Inflaters.
 func Serial[V any](inflaters ...Inflater[V]) Inflater[V] {
 	switch len(inflaters) {
 	case 0:
@@ -123,7 +132,7 @@ func Serial[V any](inflaters ...Inflater[V]) Inflater[V] {
 	}
 }
 
-// Prefix provides an Inflater which inflate with prefixes.
+// Prefix creates an Inflater that prepends each prefix string to one input.
 func Prefix[V ~string](prefixes ...V) Inflater[V] {
 	if len(prefixes) == 0 {
 		return None[V]()
@@ -139,7 +148,7 @@ func Prefix[V ~string](prefixes ...V) Inflater[V] {
 	})
 }
 
-// Suffix provides an Inflater which inflate with suffixes.
+// Suffix creates an Inflater that appends each suffix string to the input.
 func Suffix[V ~string](suffixes ...V) Inflater[V] {
 	if len(suffixes) == 0 {
 		return None[V]()
