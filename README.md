@@ -34,6 +34,7 @@ The package `inflater` provides several special `Inflater` types.
 
 * `None` - An Inflater that consumes all input and produces no output, like a black hole.
 * `Keep` - An Inflater that outputs the input as is.
+* `Slice` - An Inflater that ignores input and outputs all elements of the slice.
 * `Map` - An Inflater that converts input with a function and outputs it.
 * `Filter` - An Inflater that judges and filters input with a function.
 
