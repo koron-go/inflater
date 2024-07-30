@@ -33,39 +33,35 @@ func Keep[V any]() Inflater[V] {
 	})
 }
 
-func Map[V any](inflater Inflater[V], apply func(V) V) Inflater[V] {
+func Map[V any](apply func(V) V) Inflater[V] {
 	if apply == nil {
-		return inflater
+		return Keep[V]()
 	}
 	return InflaterFunc[V](func(seed V) iter.Seq[V] {
 		return func(yield func(V) bool) {
-			for v := range inflater.Inflate(seed) {
-				if !yield(apply(v)) {
-					return
-				}
+			if !yield(apply(seed)) {
+				return
 			}
 		}
 	})
 }
 
 // Filter provides an Inflater which inflate a seed if check(seed) returns true.
-func Filter[V any](inflater Inflater[V], check func(V) bool) Inflater[V] {
+func Filter[V any](check func(V) bool) Inflater[V] {
 	if check == nil {
-		return inflater
+		return Keep[V]()
 	}
 	return InflaterFunc[V](func(seed V) iter.Seq[V] {
 		return func(yield func(V) bool) {
-			for v := range inflater.Inflate(seed) {
-				if check(v) && !yield(v) {
-					return
-				}
+			if check(seed) && !yield(seed) {
+				return
 			}
 		}
 	})
 }
 
-// Join2 creates an Inflater with distribute a seed to two Inflaters.
-func Join2[V any](first, second Inflater[V]) Inflater[V] {
+// Parallel2 creates an Inflater with distribute a seed to two Inflaters.
+func Parallel2[V any](first, second Inflater[V]) Inflater[V] {
 	return InflaterFunc[V](func(seed V) iter.Seq[V] {
 		return func(yield func(V) bool) {
 			for s := range first.Inflate(seed) {
@@ -82,27 +78,23 @@ func Join2[V any](first, second Inflater[V]) Inflater[V] {
 	})
 }
 
-// Join creates an Inflater which distibute a seed to multiple Inflaters.
-func Join[V any](inflaters ...Inflater[V]) Inflater[V] {
+// Parallel creates an Inflater which distibute a seed to multiple Inflaters.
+func Parallel[V any](inflaters ...Inflater[V]) Inflater[V] {
 	switch len(inflaters) {
 	case 0:
 		return None[V]()
 	case 1:
 		return inflaters[0]
 	case 2:
-		return Join2(inflaters[0], inflaters[1])
+		return Parallel2(inflaters[0], inflaters[1])
 	default:
-		return Join2(inflaters[0], Join(inflaters[1:]...))
+		return Parallel2(inflaters[0], Parallel(inflaters[1:]...))
 	}
 }
 
-func JoinSeed[V any](inflaters ...Inflater[V]) Inflater[V] {
-	return Join2[V](Keep[V](), Join(inflaters...))
-}
-
-// Reinflate2 creates an Inflater that inflates the result of the first
+// Serial2 creates an Inflater that inflates the result of the first
 // Inflater with the second Inflater.
-func Reinflate2[V any](first, second Inflater[V]) Inflater[V] {
+func Serial2[V any](first, second Inflater[V]) Inflater[V] {
 	return InflaterFunc[V](func(seed V) iter.Seq[V] {
 		return func(yield func(V) bool) {
 			for s := range first.Inflate(seed) {
@@ -116,33 +108,31 @@ func Reinflate2[V any](first, second Inflater[V]) Inflater[V] {
 	})
 }
 
-// Reinflate creates an Inflater that applies multiple Inflaters in sequence to
+// Serial creates an Inflater that applies multiple Inflaters in sequence to
 // its result repeatedly.
-func Reinflate[V any](inflaters ...Inflater[V]) Inflater[V] {
+func Serial[V any](inflaters ...Inflater[V]) Inflater[V] {
 	switch len(inflaters) {
 	case 0:
 		return None[V]()
 	case 1:
 		return inflaters[0]
 	case 2:
-		return Reinflate2[V](inflaters[0], inflaters[1])
+		return Serial2[V](inflaters[0], inflaters[1])
 	default:
-		return Reinflate2[V](inflaters[0], Reinflate(inflaters[1:]...))
+		return Serial2[V](inflaters[0], Serial(inflaters[1:]...))
 	}
 }
 
 // Prefix provides an Inflater which inflate with prefixes.
-func Prefix[V ~string](inflater Inflater[V], prefixes ...V) Inflater[V] {
+func Prefix[V ~string](prefixes ...V) Inflater[V] {
 	if len(prefixes) == 0 {
 		return None[V]()
 	}
 	return InflaterFunc[V](func(seed V) iter.Seq[V] {
 		return func(yield func(V) bool) {
-			for v := range inflater.Inflate(seed) {
-				for _, prefix := range prefixes {
-					if !yield(prefix + v) {
-						return
-					}
+			for _, prefix := range prefixes {
+				if !yield(prefix + seed) {
+					return
 				}
 			}
 		}
@@ -150,17 +140,15 @@ func Prefix[V ~string](inflater Inflater[V], prefixes ...V) Inflater[V] {
 }
 
 // Suffix provides an Inflater which inflate with suffixes.
-func Suffix[V ~string](inflater Inflater[V], suffixes ...V) Inflater[V] {
+func Suffix[V ~string](suffixes ...V) Inflater[V] {
 	if len(suffixes) == 0 {
 		return None[V]()
 	}
 	return InflaterFunc[V](func(seed V) iter.Seq[V] {
 		return func(yield func(V) bool) {
-			for v := range inflater.Inflate(seed) {
-				for _, suffix := range suffixes {
-					if !yield(v + suffix) {
-						return
-					}
+			for _, suffix := range suffixes {
+				if !yield(seed + suffix) {
+					return
 				}
 			}
 		}
