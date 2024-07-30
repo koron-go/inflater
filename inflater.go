@@ -22,6 +22,21 @@ func (f InflaterFunc[V]) Inflate(seed V) iter.Seq[V] {
 	return f(seed)
 }
 
+// Slice is a wrapper for a slice, which creates an Inflater that returns the
+// elements of the slice. This Inflater always ignores the input. 
+type Slice[V any] []V
+
+// Inflate inflates all elements of the slice. It ignores the input seed.
+func (slice Slice[V]) Inflate(seed V) iter.Seq[V] {
+	return func(yield func(V) bool) {
+		for _, v := range slice {
+			if !yield(v) {
+				return
+			}
+		}
+	}
+}
+
 // None provides an Inflater which not inflate anything.
 func None[V any]() Inflater[V] {
 	return InflaterFunc[V](func(seed V) iter.Seq[V] {

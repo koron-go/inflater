@@ -1,27 +1,14 @@
 package inflater_test
 
 import (
-	"iter"
 	"strings"
 	"testing"
 
 	"github.com/koron-go/inflater"
 )
 
-type staticInflater []string
-
-func (iter staticInflater) Inflate(string) iter.Seq[string] {
-	return func(yield func(string) bool) {
-		for _, s := range iter {
-			if !yield(s) {
-				return
-			}
-		}
-	}
-}
-
-var static1 = staticInflater{"aaa", "bbb", "ccc"}
-var static2 = staticInflater{"111", "222", "333"}
+var static1 = inflater.Slice[string]{"aaa", "bbb", "ccc"}
+var static2 = inflater.Slice[string]{"111", "222", "333"}
 
 func testInflater[T ~string | ~int](t *testing.T, target inflater.Inflater[T], seed T, wants ...T) {
 	i := 0
