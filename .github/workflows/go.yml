@@ -3,7 +3,8 @@ name: Go
 on: [push]
 
 env:
-  GO_VERSION: '>=1.21.0'
+  GO_VERSION: '>=1.22.0'
+  GOEXPERIMENT: rangefunc
 
 jobs:
 
