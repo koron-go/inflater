@@ -23,7 +23,7 @@ func (f InflaterFunc[V]) Inflate(seed V) iter.Seq[V] {
 }
 
 // Slice is a wrapper for a slice, which creates an Inflater that returns the
-// elements of the slice. This Inflater always ignores the input. 
+// elements of the slice. This Inflater always ignores the input.
 type Slice[V any] []V
 
 // Inflate inflates all elements of the slice. It ignores the input seed.
