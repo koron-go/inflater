@@ -2,7 +2,6 @@
 
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/koron-go/inflater)](https://pkg.go.dev/github.com/koron-go/inflater)
 [![Actions/Go](https://github.com/koron-go/inflater/workflows/Go/badge.svg)](https://github.com/koron-go/inflater/actions?query=workflow%3AGo)
-[![Go Report Card](https://goreportcard.com/badge/github.com/koron-go/inflater)](https://goreportcard.com/report/github.com/koron-go/inflater)
 
 The package `inflater` provides an `Inflater` interface that inflates a value
 into multiple values and some operations to combine them `Inflater`s.
